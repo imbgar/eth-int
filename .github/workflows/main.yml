@@ -22,9 +22,10 @@ jobs:
       - name: Build and push multi-arch image
         env:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        # Removed multi-arch build for demo purpose.
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/amd64
             -t "$ECR_REPOSITORY:latest" \
             --push .
       - name: Publish image digest to SSM
