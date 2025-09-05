@@ -49,12 +49,8 @@ flowchart TB
 ## Basic Usage for Presentation
 
 - Health Endpoint: `curl balance-api-1857254788.us-west-2.elb.amazonaws.com/healthz`
-
-## Non-checksum address
-`curl balance-api-1857254788.us-west-2.elb.amazonaws.com/address/balance/0xc94770007dDa54cF92009BFF0dE90c06F603a09f`
-
-## Checksum address
-`curl balance-api-1857254788.us-west-2.elb.amazonaws.com/address/balance/0xc94770007dda54cF92009BFF0dE90c06F603a09f`
+- Non-checksum address: `curl balance-api-1857254788.us-west-2.elb.amazonaws.com/address/balance/0xc94770007dDa54cF92009BFF0dE90c06F603a09f`
+- Checksum address: `curl balance-api-1857254788.us-west-2.elb.amazonaws.com/address/balance/0xc94770007dda54cF92009BFF0dE90c06F603a09f`
 
 ### API Contract
 - Route: `GET /address/balance/:address`
