@@ -10,10 +10,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 # Install build tools (needed for some wheels on arm64)
-## apt-get update - takes too long for demo purpose.
-## in prod we would have a common base image with apt-get already ran.
-## RUN apt-get update
-RUN apt-get install -y --no-install-recommends build-essential \
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
