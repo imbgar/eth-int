@@ -12,6 +12,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_PAGER: ""
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - name: Login to Amazon ECR
@@ -19,24 +20,22 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build and push multi-arch image
+      - name: Build and push image with commit SHA and latest
         env:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         # Removed multi-arch build for demo purpose.
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            -t "$ECR_REPOSITORY:${IMAGE_TAG}" \
             -t "$ECR_REPOSITORY:latest" \
             --push .
-      - name: Publish image digest to SSM
+      - name: Publish image tag to SSM
         env:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-          IMAGE_TAG: latest
           IMAGEDIGEST_SSM: ${{ secrets.IMAGEDIGEST_SSM }}
         run: |
-          DIGEST=$(aws ecr describe-images --region "$AWS_REGION" --repository-name "$ECR_REPOSITORY" --image-ids imageTag=$IMAGE_TAG --query 'imageDetails[0].imageDigest' --output text)
-          FULL_REF="$ECR_REPOSITORY@$DIGEST"
-          aws ssm put-parameter --region "$AWS_REGION" --name "$IMAGEDIGEST_SSM" --type String --overwrite --value "$FULL_REF"
+          aws ssm put-parameter --region "$AWS_REGION" --name "$IMAGEDIGEST_SSM" --type String --overwrite --value "$ECR_REPOSITORY:${IMAGE_TAG}"
 
   apply_tf:
     runs-on: ubuntu-latest
