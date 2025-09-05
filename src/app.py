@@ -152,3 +152,32 @@ def get_balance(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.get("/transaction/{hash}")
+def get_transaction(hash: str = Path(..., description="Transaction Hash")):
+    transaction_hash = hash
+
+    rpc_url= get_infura_rpc_url_mainnet()
+
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "eth_getTransactionByHash",
+        "params": [transaction_hash],
+    }
+
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            rpc_resp = client.post(rpc_url, json=payload, headers={"Content-Type": "application/json"})
+            data = rpc_resp.json()
+            if "error" in data:
+                raise HTTPException(status_code=502, detail={"upstream_error": data["error"]})
+            result = data.get("result")
+            if not isinstance(result, dict):
+                raise HTTPException(status_code=502, detail="Bad upstream response")
+
+        response = result
+        return response
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

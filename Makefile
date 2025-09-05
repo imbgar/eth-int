@@ -46,7 +46,7 @@ docker-build:
 	docker build -t $(IMAGE):$(TAG) .
 
 ## docker-run: Run the Docker image locally (requires INFURA_PROJECT_ID)
-docker-run:
+docker-run: docker-build
 	@if [ -z "$(INFURA_PROJECT_ID)" ]; then echo "Set INFURA_PROJECT_ID first"; exit 1; fi
 	docker run --rm -e INFURA_PROJECT_ID=$(INFURA_PROJECT_ID) -p 3000:3000 $(IMAGE):$(TAG)
 
