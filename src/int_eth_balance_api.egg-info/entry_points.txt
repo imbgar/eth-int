@@ -1,0 +1,2 @@
+[console_scripts]
+serve = uvicorn:main

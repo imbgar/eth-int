@@ -1,0 +1,23 @@
+[project]
+name = "int-eth-balance-api"
+version = "0.1.0"
+description = "Example FastAPI service returning Ethereum balances via Infura"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.112.2",
+  "uvicorn[standard]==0.30.5",
+  "httpx==0.27.0",
+  "pydantic==2.8.2",
+  "eth-utils==4.1.1",
+  "eth-hash[pycryptodome]",
+  "python-dotenv==1.0.1",
+  "web3==6.*",
+]
+
+[project.scripts]
+serve = "uvicorn:main"
+
+[tool.uv]
+package = true
+
+
