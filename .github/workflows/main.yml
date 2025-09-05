@@ -25,7 +25,7 @@ jobs:
         # Removed multi-arch build for demo purpose.
         run: |
           docker buildx build \
-            --platform linux/amd64
+            --platform linux/amd64 \
             -t "$ECR_REPOSITORY:latest" \
             --push .
       - name: Publish image digest to SSM
