@@ -1,13 +1,54 @@
-## Ethereum Balance API - Design and Deployment
+## Ethereum Balance API (FastAPI on ECS)
 
 ### Overview
 This service exposes a simple HTTP endpoint implemented in Python with FastAPI. It retrieves an Ethereum address balance via Infura API. It is containerized, deployable to AWS ECS Fargate via Terraform, and ships with a CI workflow to build and push the image.
 
+```mermaid
+flowchart TB
+  user["User / Client"]
+  alb["AWS ALB (HTTP:80)"]
+  ecs["ECS Fargate Service"]
+  app["FastAPI app\n/healthz, /address/balance/{addr}"]
+  infura["Infura Ethereum RPC\n(mainnet)"]
+  ci["GitHub Actions CI"]
+  ecr["Amazon ECR\nint/balance-api:latest"]
+  ssm["AWS SSM Parameter\n/int/balance-api/image_digest"]
+  tf["Terraform Apply\n(terraform/app)"]
+
+  user --> alb --> ecs --> app --> infura
+  ci --> ecr
+  ci --> ssm
+  ci --> tf
+  tf --> ecs
+```
+
+## Directory structure
+```text
+.
+├─ src/
+│  └─ app.py                 # FastAPI service
+├─ Dockerfile                # Container build (non-root user, uv install)
+├─ Makefile                  # Dev, Docker/ECR, and Terraform targets
+├─ .github/workflows/
+│  ├─ plan.yml               # Plan on PRs and feature/* branches
+│  ├─ apply.yml              # On main: build/push, SSM publish, terraform apply
+│  └─ ci.yml                 # ECR image build/push job
+└─ terraform/
+   └─ app/                   # ECS app infrastructure
+      ├─ config.tf           # Backend/provider + SSM image data source
+      ├─ input.tf            # Variables (incl. SSM param names)
+      ├─ ecs.tf              # Cluster, task def, service
+      ├─ elb.tf              # ALB, target group (ip), listener
+      ├─ security_group.tf   # ALB and service SGs
+      ├─ cwl.tf              # CloudWatch log group
+      └─ iam.tf              # Task execution role and SSM read policy
+   └─ bootstrap/             # (Optional) state bucket/lock bootstrap
+      └─ main.tf             # S3 bucket/KMS/optional lock table (used initially)
+```
+
 ## Basic Usage for Presentation
 
-## Health Endpoint
-
-`curl balance-api-1857254788.us-west-2.elb.amazonaws.com/healthz`
+- Health Endpoint: `curl balance-api-1857254788.us-west-2.elb.amazonaws.com/healthz`
 
 ## Non-checksum address
 `curl balance-api-1857254788.us-west-2.elb.amazonaws.com/address/balance/0xc94770007dDa54cF92009BFF0dE90c06F603a09f`
@@ -57,33 +98,13 @@ This service exposes a simple HTTP endpoint implemented in Python with FastAPI. 
 - Container built by Dockerfile. Terraform provisions ECS Fargate, ALB, SGs, and a service with two tasks for HA in multiple AZs. ALB DNS is exported.
 
 ### CI/CD
-- GitHub Actions builds the image on push.
-
----
-
-## C4 Diagram (System + Container)
-
-```mermaid
-%% C4-ish diagram using Mermaid
-flowchart TB
-  user["User / Client"]
-  lb["AWS ALB (HTTP)"]
-  svc["ECS Service (Fargate)\nBalance API (Node.js)"]
-  prov["Infura Ethereum RPC\n(mainnet/sepolia/holesky)"]
-
-  user --> lb --> svc --> prov
-```
-
-If you prefer D2 ("dolphin") syntax:
-
-```d2
-User: Client
-ALB: AWS ALB
-API: ECS Fargate Service\nBalance API (Node.js)
-Infura: Ethereum RPC (mainnet/sepolia/holesky)
-
-User -> ALB -> API -> Infura
-```
+- feature/* branches and any PR:
+  - Run `terraform plan` in `terraform/app`.
+- main merges:
+  1) Build multi-arch (amd64/arm64) Docker image
+  2) Push `:latest` to Amazon ECR
+  3) Publish image digest (`repo@sha256:…`) to SSM at `/int/balance-api/image_digest`
+  4) `terraform apply -auto-approve` in `terraform/app`
 
 ---
 
@@ -118,26 +139,20 @@ User -> ALB -> API -> Infura
 
 ## Local Development
 ```bash
-# Install uv (if not installed): pip install uv
-uv venv
-. .venv/bin/activate
-uv pip install -e .
-export INFURA_PROJECT_ID=xxxx
-uv run uvicorn src.app:app --reload --port 3000
+make venv install
+make run INFURA_PROJECT_ID=xxxx
 curl "http://localhost:3000/address/balance/0xc94770007dda54cF92009BFF0dE90c06F603a09f"
 ```
 
-## Docker
+## Docker / ECR
 ```bash
-docker build -t balance-api:local .
-docker run -e INFURA_PROJECT_ID=xxxx -p 3000:3000 balance-api:local
+make ecr-login
+make ecr-build        # multi-arch build and push to ECR, updates SSM digest
 ```
 
 ## Terraform (ECS Fargate)
 ```bash
-cd terraform
-terraform init
-terraform apply -var="aws_region=us-west-2" -var="container_image=docker.io/<you>/balance-api:latest" -var="infura_project_id=xxxx"
+make tf-init
+make tf-plan
+make tf-apply
 ```
-
-
