@@ -32,9 +32,9 @@ jobs:
       - name: Publish image tag to SSM
         env:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-          IMAGE_DIGEST_SSM: ${{ secrets.IMAGEDIGEST_SSM }}
+          IMAGE_DIGEST_SSM: ${{ secrets.IMAGE_DIGEST_SSM }}
         run: |
-          aws ssm put-parameter --region "$AWS_REGION" --name "$IMAGEDIGEST_SSM" --type String --overwrite --value "$ECR_REPOSITORY:${IMAGE_TAG}"
+          aws ssm put-parameter --region "$AWS_REGION" --name "$IMAGE_DIGEST_SSM" --type String --overwrite --value "$ECR_REPOSITORY:${IMAGE_TAG}"
 
   apply_tf:
     runs-on: ubuntu-latest
